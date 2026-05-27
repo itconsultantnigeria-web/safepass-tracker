@@ -1,30 +1,4 @@
-name: Build SafePass APK
-on: [push, workflow_dispatch]
-
-jobs:
-  build:
-    runs-on: ubuntu-22.04
-
-    steps:
-    - name: Checkout Source Code
-      uses: actions/checkout@v4
-
-    - name: Set up Python Runtime
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-
-    - name: Install System Packaging Tools
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libffi-dev gzip zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libssl-dev cmake
-
-    - name: Install Buildozer & Cython
-      run: |
-        pip install --upgrade pip
-        pip install "Cython<3.0.0" buildozer setuptools wheel
-
-    - name: Create Clean Explicit Buildozer Config
+- name: Create Clean Explicit Buildozer Config
       run: |
         cat << 'EOF' > buildozer.spec
         [app]
@@ -34,15 +8,15 @@ jobs:
         source.dir = .
         source.include_exts = py,png,jpg,kv,atlas,json
         version = 0.1
-        requirements = python3, kivy==2.3.0, kivymd==1.2.0, requests, urllib3, chardet, idna, plyer, kivy_garden.mapview
+        # Switch to lightweight requirements
+        requirements = python3, flask, jinja2, Werkzeug, itsdangerous, click, requests, urllib3, chardet, idna
         orientation = portrait
-        fullscreen = 0
+        fullscreen = 1
         android.permissions = INTERNET, ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION
         android.api = 33
         android.minapi = 24
-        # FORCE STABLE NDK VERSION TO PREVENT FREETYPE COMPILATION CRASHES:
-        android.ndk = 25c
-        android.ndk_api = 24
+        # Tell Buildozer to use the ultra-stable WebView layout
+        android.bootstrap = webview
         android.private_storage = True
         android.accept_sdk_license = True
         log_level = 2
@@ -51,13 +25,3 @@ jobs:
         log_level = 2
         warn_on_root = 0
         EOF
-
-    - name: Package Android APK
-      run: |
-        yes | buildozer -v android debug
-        
-    - name: Upload Finished Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: SafePass-APK
-        path: bin/*.apk
