@@ -19,23 +19,40 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libffi-dev gzip zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libssl-dev cmake
 
-    - name: Install Buildozer & Cython dependencies
+    - name: Install Buildozer & Cython
       run: |
         pip install --upgrade pip
         pip install "Cython<3.0.0" buildozer setuptools wheel
 
-    - name: Generate and Update Buildozer Spec
+    - name: Create Clean Explicit Buildozer Config
       run: |
-        buildozer init
-        sed -i 's/^requirements = .*/requirements = python3, kivy==2.3.0, kivymd==1.2.0, requests, urllib3, chardet, idna, plyer, kivy_garden.mapview/' buildozer.spec
-        sed -i 's/^# android.permissions = .*/android.permissions = INTERNET, ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION/' buildozer.spec
-        sed -i 's/^package.name = .*/package.name = safepass/' buildozer.spec
-        sed -i 's/^package.domain = .*/package.domain = com.dtech1/' buildozer.spec
-        # Force buildozer to accept licenses automatically to avoid pausing
-        sed -i 's/^# android.accept_sdk_license = .*/android.accept_sdk_license = True/' buildozer.spec
+        # Write the configuration properties directly to disk without using init replacements
+        cat << 'EOF' > buildozer.spec
+        [app]
+        title = SafePass Tracker
+        package.name = safepass
+        package.domain = com.dtech1
+        source.dir = .
+        source.include_exts = py,png,jpg,kv,atlas,json
+        version = 0.1
+        requirements = python3, kivy==2.3.0, kivymd==1.2.0, requests, urllib3, chardet, idna, plyer, kivy_garden.mapview, sqlite3, openssl
+        orientation = portrait
+        osx.kivy_version = 2.3.0
+        fullscreen = 0
+        android.permissions = INTERNET, ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION
+        android.api = 33
+        android.minapi = 24
+        android.ndk_api = 24
+        android.private_storage = True
+        android.accept_sdk_license = True
+        log_level = 2
+        
+        [buildozer]
+        log_level = 2
+        warn_on_root = 0
+        EOF
 
     - name: Package Android APK
-      timeout-minutes: 30 # Gives the massive NDK download up to 30 minutes so it never crashes mid-way
       run: |
         yes | buildozer -v android debug
         
